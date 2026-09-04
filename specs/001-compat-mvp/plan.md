@@ -7,8 +7,15 @@
 | 項目 | 選択 |
 |---|---|
 | Language | TypeScript |
-| Dev/build runtime（compat自身） | **Bun**（`bun install` / `bun test` / `bun run`。詳細は1.1参照） |
+| npm公開パッケージ名 / CLIコマンド名 | `compatkit` / `compat`（spec.md Section 1 Naming decision） |
+| Dev/build runtime（compat自身） | **Bun 1.4.0**（`bun install` / `bun test` / `bun run`。詳細は1.1参照） |
 | Published CLIの実行runtime | Node.js互換を維持（`npx compat test`。詳細は1.1参照） |
+| Node.js下限 | `>=22.12.0`（commander@15の要求。Node 20は2026年4月にEOL） |
+| Toolchain pin | `mise.toml` で bun / node を固定（開発環境の再現性） |
+| 公開ビルド | **`tsc`**（`tsconfig.build.json`。Phase 1で確定 — 下記Section 7） |
+| CLI引数パーサー | **commander@15**（Phase 1で確定 — 下記Section 7） |
+| Module形式 | ESM（`"type": "module"`, `module: nodenext`） |
+| lint / format | **Biome 2**（`biome.json`。1ツールでlint+format） |
 | Matrix環境のpackage manager（spec.md Section 15） | npm のみ first-class support（**compat自身の開発toolchainとは別物**。1.1参照） |
 | Config format | YAML（`compat.yml`） |
 | Target framework (MVP) | Next.js のみ |
@@ -24,7 +31,8 @@
 - 依存管理: `bun install`（`bun.lock`をrepoにcommit）
 - テスト実行: `bun test`
 - ローカル実行: `bun run src/cli.ts`
-- ビルド: 公開パッケージは`npx compat test`で誰でも実行できる必要がある（spec.md Section 1, 12, 28のUX要件）。Bun専用APIに依存しない、Node.js互換なJSへcompile/bundleして公開する（`tsc`または`bun build --target=node`）。**エンドユーザーにBunのインストールを要求しない。**
+- ビルド: 公開パッケージは`npx compat test`で誰でも実行できる必要がある（spec.md Section 1, 12, 28のUX要件）。Bun専用APIに依存しない、Node.js互換なJSへcompileして公開する。**Phase 1で`tsc`に確定**（Section 7参照）。**エンドユーザーにBunのインストールを要求しない。**
+- 上記を担保する仕組み: ビルド用tsconfigは`types: ["node"]`としてBunの型を排除し、Bun専用APIへの依存を型レベルで防ぐ。加えて`verify:node`（`node dist/cli.js test`）を`bun run check`の最終ステップに置き、成果物が素のNodeで動くことを毎回確認する。
 
 **(b) compatがテストするMatrix環境（一時fixture環境）のpackage manager → npm のまま変更しない**
 
@@ -46,9 +54,19 @@
 
 ## 3. Project structure
 
+凡例: ✅ = Phase 1 で作成済み / 無印 = 後続Phaseで作成
+
 ```text
+mise.toml                       # ✅ bun / node のversion pin
+package.json                    # ✅ name: compatkit, bin: { compat: ./dist/cli.js }
+bun.lock                        # ✅ commitする
+tsconfig.json                   # ✅ 型チェック用（noEmit, types: ["bun"]）
+tsconfig.build.json             # ✅ 公開ビルド用（rootDir: src → outDir: dist, types: ["node"]）
+biome.json                      # ✅ lint + format
+README.md                       # ✅ prepack前提とセキュリティ警告を明記（spec.md Section 7, 17）
+
 src/
-├── cli.ts                      # entrypoint, command parsing
+├── cli.ts                      # ✅ entrypoint, command parsing
 ├── config/
 │   ├── loader.ts                # YAML parse
 │   ├── schema.ts                # zod等によるschema定義
@@ -71,7 +89,8 @@ src/
 │   ├── types.ts                   # failureType: "infra" | "test"
 │   ├── aggregator.ts
 │   └── formatter.ts               # CLI text output（将来JSON output）
-└── errors.ts
+├── errors.ts                       # ✅ exit code定数（0/1/2）とCompatError階層
+└── version.ts                      # ✅ CLIが報告するversion（package.jsonと同期）
 
 compat-fixture/                     # ユーザー提供の最小Next.jsアプリ（テンプレート）
 compat.yml                          # ユーザー提供の設定
@@ -147,8 +166,39 @@ MVPはnpmのみ。将来pnpm/yarn/bun対応を見据え、installer/packagerをp
 
 単体テストは各moduleごとに配置し、E2Eはfixtureを使った実際の`compat test`実行で検証する。
 
-## 7. Open questions（実装中に確定させる）
+## 7. Open questions
 
-- 公開ビルドの生成方法（`tsc` vs `bun build --target=node`）、Node.js互換性の検証方法（Phase 1）
-- YAML parserライブラリ（js-yaml等）とschema validationライブラリ（zod等）の選定（Phase 2）
-- CLI引数パーサー（commander / yargs等。Bun互換性を確認）の選定（Phase 1）
+### 解決済み（Phase 1で確定）
+
+- **公開ビルドの生成方法 → `tsc`**（`tsconfig.build.json`, `rootDir: src` / `outDir: dist`）。
+  バンドラ固有の挙動差を持ち込まずNode互換出力が予測可能で、型チェックと同一ツールで完結するため。
+  `bun build --target=node` は単一ファイル化の利点があるが、Bunへの結合点が増え、
+  「エンドユーザーにBunを要求しない」（1.1）の検証が間接的になるため見送った。
+  ビルド用tsconfigは `types: ["node"]` としてBunの型を持ち込まず、Bun専用APIへの依存を型レベルで防ぐ。
+- **Node.js互換性の検証方法 → ビルド成果物をNodeで実行する**。
+  `verify:node` script（`node dist/cli.js test`）を `bun run check` の最後に置き、
+  `mise.toml` でpinしたNode 24で実行する。さらに `npm pack` → repo外での install → `npx compat test`
+  までを手動検証手順とする（tasks.md Phase 1 のDefinition of Done）。
+- **CLI引数パーサー → commander@15**。依存ゼロで `--help` / `--version` を自動生成でき、
+  サブコマンド `test` を素直に表現できる。CLI表面が小さいためyargsは過剰と判断した。
+  **注意点**: commanderは引数エラーを exit code 1 で終了させるが、spec.md Section 11 はCLI errorに 2 を
+  要求する。`exitOverride()` で終了を奪い、`CommanderError.code` を見て
+  `--help` / `--version` は 0、それ以外は 2 にマップしている（`src/cli.ts`）。
+- **lint/format → Biome 2**（tasks.md Phase 1 の選択肢より）。1ツール・1設定で完結する。
+
+### 実装時に判明した制約（Phase 1・後続Phaseも従うこと）
+
+- **`tsconfig.build.json` には `rootDir: "src"` の明示が必須**。TypeScript 7 は rootDir 未指定を
+  エラー（TS5011）にする。未指定だと出力が `dist/src/` になり `bin` のパスと食い違う。
+- **相対importは `.js` 拡張子付きで書く**（例: `import { ... } from "./errors.js"`、実体は `.ts`）。
+  `module: nodenext` の要求であり、Bun / tsc の双方が解決できる。
+  **Phase 2以降もこのimport規約を踏襲する。**
+- **CLIのversionは `src/version.ts` の定数で保持し、`package.json` を import しない**。
+  `outDir: dist` 構成では `package.json` への相対パスがビルド前後で変わり壊れやすいため。
+  値は `package.json` の `version` と手動で同期させる（将来ビルド時生成に切り替え可）。
+- **`package.json` に `prepack: "bun run build"` を置く**。spec.md Section 7 が対象パッケージに
+  課す「ビルドは`prepack`で完結させる」規約を compat 自身も満たす（dogfooding）。
+
+### 未解決
+
+- YAML parserライブラリ（`yaml` / js-yaml等）とschema validationライブラリ（zod等）の選定（Phase 2）

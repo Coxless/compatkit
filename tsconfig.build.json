@@ -1,0 +1,16 @@
+{
+  // 公開ビルド用。Node.js 互換の JS を dist/ へ emit する（plan.md 1.1）。
+  // Bun の型を持ち込まないことで、Bun 専用 API への依存を型レベルで防ぐ。
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    // TS7 は rootDir の明示を要求する。dist/src/ ではなく dist/ 直下へ出すため必須。
+    "rootDir": "src",
+    "outDir": "dist",
+    "sourceMap": true,
+    "declaration": false,
+    "types": ["node"]
+  },
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts"]
+}

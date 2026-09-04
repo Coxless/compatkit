@@ -6,18 +6,21 @@
 
 ---
 
-## Phase 1: Project bootstrap
+## Phase 1: Project bootstrap ✅ 完了
 
-- [ ] `bun init`相当でproject初期化（name: `compat`のnpm registry上の空き状況を確認）
-- [ ] TypeScript設定（tsconfig, ビルド方式）
-- [ ] `bun install`で依存管理（`bun.lock`をcommit）
-- [ ] CLI entrypoint（`bin`フィールド, shebang）
-- [ ] CLI引数パーサー導入（commander/yargs等の選定、Bun互換性確認含む）
-- [ ] `bun test`によるtest実行のセットアップ
-- [ ] 公開ビルドパイプライン（`tsc`または`bun build --target=node`でNode.js互換JSを生成し`npx compat test`が動くことを確認 — plan.md 1.1参照）
-- [ ] lint/format/typecheckのセットアップ（eslint, prettier or biome）
+- [x] project初期化（npm registry確認の結果 `compat` は取得済み → **公開名 `compatkit`**、コマンド名は `compat` を維持。spec.md Section 1 Naming decision）
+- [x] toolchain pin（`mise.toml`: bun 1.4.0 / node 24.20.0）
+- [x] TypeScript設定（`tsconfig.json` = 型チェック用 / `tsconfig.build.json` = emit用）
+- [x] `bun install`で依存管理（`bun.lock`をcommit）
+- [x] CLI entrypoint（`bin: { compat: ./dist/cli.js }`, shebang `#!/usr/bin/env node`）
+- [x] CLI引数パーサー導入（**commander@15**。exit codeを0/1/2にマップする`exitOverride()`処理込み）
+- [x] `bun test`によるtest実行のセットアップ（`src/cli.test.ts`: 6ケース）
+- [x] 公開ビルドパイプライン（**`tsc`**。`npm pack` → repo外でinstall → `npx compat test` の完走を確認）
+- [x] lint/format/typecheckのセットアップ（**Biome 2** + `tsc --noEmit`、まとめて `bun run check`）
 
 **Definition of Done**: `npx compat test`相当のコマンドが（未実装のno-opでも）実行できる状態。
+→ **達成**。`compatkit-0.1.0.tgz` をrepo外の一時ディレクトリにinstallし、Bunなしの素のNodeで
+`npx compat test`（exit 0）/ `npx compat bogus`（exit 2）を確認済み。
 
 ---
 
