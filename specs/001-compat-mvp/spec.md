@@ -6,9 +6,16 @@
 
 ### Project name
 
-仮称: `compat`
+- **npm公開パッケージ名: `compatkit`**
+- **CLIコマンド名（`bin`）: `compat`**
 
 （Next.js専用ツールを想起させる名称を避け、将来的に他フレームワークへ拡張可能な汎用名とする。MVPのスコープはNext.jsに限定する。）
+
+> **Naming decision (Phase 1で確定):** 当初の仮称は `compat` だったが、npmレジストリ上の `compat` は
+> 2016年公開の既存パッケージが取得済み（最終更新2022年・月間約327DL）であり、ドーマントではあるものの
+> 無使用ではないため名前譲渡申請での取得は現実的でないと判断した。
+> そこで公開パッケージ名のみ `compatkit` とし、**利用者が打ち込むコマンド名は `compat` のまま維持**する。
+> 本ドキュメント中の `compat` は、以降も製品／コマンドの呼称として用いる。
 
 ### One-line concept
 
@@ -30,8 +37,12 @@
 ### Core UX
 
 ```bash
+npm install --save-dev compatkit
 npx compat test
 ```
+
+（レジストリから直接叩く場合は `npx compatkit test`。パッケージ名とコマンド名の関係は上記
+Naming decision を参照。以降 `npx compat test` と表記する箇所はこのUXを指す。）
 
 ユーザーが用意するものは、原則として以下だけ。
 
@@ -685,8 +696,11 @@ MVPではexit codeの種類を増やさず0/1/2のままとする（CI連携の�
 ### Main command
 
 ```bash
-npx compat test
+npx compat test        # devDependencyとして導入済みの場合
+npx compatkit test     # レジストリから直接実行する場合
 ```
+
+（パッケージ名 `compatkit` / コマンド名 `compat`。Section 1 Naming decision 参照。）
 
 ### Config
 
@@ -1351,14 +1365,14 @@ warm runでは、可能なenvironment/artifact cacheを再利用する。
 
 Claude Codeには以下の順序で実装させる。
 
-### Phase 1: Project bootstrap
+### Phase 1: Project bootstrap ✅ 完了
 
-- パッケージ名`compat`のnpm registry上の空き状況確認
-- TypeScript CLI project setup
-- executable entrypoint
-- command parser
-- test framework
-- lint/format/typecheck
+- [x] パッケージ名`compat`のnpm registry上の空き状況確認 → **取得済みだったため公開名を`compatkit`に変更**（Section 1 Naming decision）
+- [x] TypeScript CLI project setup
+- [x] executable entrypoint
+- [x] command parser（commander@15）
+- [x] test framework（`bun test`）
+- [x] lint/format/typecheck（Biome 2 + `tsc --noEmit`）
 
 ### Phase 2: Config
 
@@ -1510,7 +1524,7 @@ MVPでやらないもの:
 
 > **「1つのNext.js fixtureと1つのYAML設定だけで、publish相当のNPM packageを複数のNext.js / React組み合わせに対して、高速かつ安全にテストできること」**
 
-最終的な基本UX:
+最終的な基本UX（パッケージ名 `compatkit` / コマンド名 `compat`。Section 1 Naming decision 参照）:
 
 ```bash
 npx compat test

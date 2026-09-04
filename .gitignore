@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+
+# npm pack の出力（compat 自身の tarball）
+*.tgz
+
+# compat のローカル cache ディレクトリ（Phase 8）
+.compat/

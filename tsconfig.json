@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "es2023",
+    "lib": ["es2023"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+
+    // 型チェック専用。emit は tsconfig.build.json が担当する。
+    "noEmit": true,
+    "types": ["bun"]
+  },
+  "include": ["src"]
+}
