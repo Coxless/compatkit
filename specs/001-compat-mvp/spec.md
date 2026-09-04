@@ -1,3 +1,5 @@
+> **SDD artifact: spec.md** — 本ドキュメントは`compat` MVPの要求仕様（what/why）。設計は[plan.md](./plan.md)、実行タスクは[tasks.md](./tasks.md)を参照。
+
 # compat — MVP Concept
 
 ## 1. Product Overview
