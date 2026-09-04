@@ -7,12 +7,30 @@
 | 項目 | 選択 |
 |---|---|
 | Language | TypeScript |
-| Runtime | Node.js（CLI実行中のNode.jsをそのまま利用。Section 16参照） |
-| Package manager (MVP) | npm のみ first-class support（Section 15） |
+| Dev/build runtime（compat自身） | **Bun**（`bun install` / `bun test` / `bun run`。詳細は1.1参照） |
+| Published CLIの実行runtime | Node.js互換を維持（`npx compat test`。詳細は1.1参照） |
+| Matrix環境のpackage manager（spec.md Section 15） | npm のみ first-class support（**compat自身の開発toolchainとは別物**。1.1参照） |
 | Config format | YAML（`compat.yml`） |
 | Target framework (MVP) | Next.js のみ |
 | Distribution | `npx compat test` として実行できるexecutable CLI |
-| Test framework | 未確定。Phase 1で選定（Vitest等、CLI/Node向けで高速なもの） |
+| Test framework | Bunの組み込みtest runner（`bun test`） |
+
+### 1.1 Bunの適用範囲（重要・混同注意）
+
+`compat`は2つの異なる文脈で「Node.js/npm」を扱う。Bun導入はこのうち**(a)のみ**に適用し、**(b)は変更しない**。
+
+**(a) compat自身の開発ツールチェーン → Bun**
+
+- 依存管理: `bun install`（`bun.lock`をrepoにcommit）
+- テスト実行: `bun test`
+- ローカル実行: `bun run src/cli.ts`
+- ビルド: 公開パッケージは`npx compat test`で誰でも実行できる必要がある（spec.md Section 1, 12, 28のUX要件）。Bun専用APIに依存しない、Node.js互換なJSへcompile/bundleして公開する（`tsc`または`bun build --target=node`）。**エンドユーザーにBunのインストールを要求しない。**
+
+**(b) compatがテストするMatrix環境（一時fixture環境）のpackage manager → npm のまま変更しない**
+
+- spec.md Section 15「npmをfirst-class supportする」はテスト対象のNext.js fixture環境の話であり、compat自身の開発言語/ツールとは無関係。
+- `environment/builder.ts`, `execution/executor.ts`等が一時環境内で呼び出すpackage managerは引き続き`npm`（`npm install`, `npm pack`等）。
+- 将来pnpm/yarn/bunをMatrix環境側でサポートする場合は別途spec.md改訂が必要（現状はSection 15 Futureに記載のみ、MVP非対応）。
 
 ## 2. Non-negotiable invariants（Constitution）
 
@@ -131,6 +149,6 @@ MVPはnpmのみ。将来pnpm/yarn/bun対応を見据え、installer/packagerをp
 
 ## 7. Open questions（実装中に確定させる）
 
-- テストフレームワークの選定（Phase 1）
+- 公開ビルドの生成方法（`tsc` vs `bun build --target=node`）、Node.js互換性の検証方法（Phase 1）
 - YAML parserライブラリ（js-yaml等）とschema validationライブラリ（zod等）の選定（Phase 2）
-- CLI引数パーサー（commander / yargs等）の選定（Phase 1）
+- CLI引数パーサー（commander / yargs等。Bun互換性を確認）の選定（Phase 1）

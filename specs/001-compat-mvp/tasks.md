@@ -8,11 +8,13 @@
 
 ## Phase 1: Project bootstrap
 
-- [ ] `package.json`初期化（name: `compat`のnpm registry上の空き状況を確認）
+- [ ] `bun init`相当でproject初期化（name: `compat`のnpm registry上の空き状況を確認）
 - [ ] TypeScript設定（tsconfig, ビルド方式）
+- [ ] `bun install`で依存管理（`bun.lock`をcommit）
 - [ ] CLI entrypoint（`bin`フィールド, shebang）
-- [ ] CLI引数パーサー導入（commander/yargs等の選定含む）
-- [ ] テストフレームワーク導入（Vitest等の選定含む）
+- [ ] CLI引数パーサー導入（commander/yargs等の選定、Bun互換性確認含む）
+- [ ] `bun test`によるtest実行のセットアップ
+- [ ] 公開ビルドパイプライン（`tsc`または`bun build --target=node`でNode.js互換JSを生成し`npx compat test`が動くことを確認 — plan.md 1.1参照）
 - [ ] lint/format/typecheckのセットアップ（eslint, prettier or biome）
 
 **Definition of Done**: `npx compat test`相当のコマンドが（未実装のno-opでも）実行できる状態。
